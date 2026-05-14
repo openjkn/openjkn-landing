@@ -88,7 +88,7 @@ export function Navbar() {
             asChild
             className={cn(
               "hidden md:flex transition-colors",
-              !isScrolled ? "text-white hover:bg-white/10" : ""
+              !isScrolled ? "text-white hover:bg-white/80" : ""
             )}
           >
             <Link href="https://github.com/openjkn" target="_blank">
