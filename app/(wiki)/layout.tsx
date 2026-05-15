@@ -1,6 +1,7 @@
 import { Layout, Navbar } from 'nextra-theme-docs'
 import { Head } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
+import type { PageMapItem } from 'nextra'
 import 'nextra-theme-docs/style.css'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -41,9 +42,9 @@ export default async function WikiLayout({
   ]
 
   const wikiMap = wikiOrder.map(config => {
-    const item = map.find((i: any) => i.name === config.name)
+    const item = map.find((i: PageMapItem) => 'name' in i && i.name === config.name)
     return item ? { ...item, title: config.title } : null
-  }).filter(Boolean)
+  }).filter((item): item is NonNullable<typeof item> => item !== null) as PageMapItem[]
 
   return (
     <div className="nextra-wiki-wrapper bg-white min-h-screen text-slate-900">

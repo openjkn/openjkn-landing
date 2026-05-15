@@ -55,13 +55,22 @@ export function Navbar() {
         </Link>
         <nav className="flex flex-1 items-center gap-6 text-sm font-medium">
           <Link
-            href="#pillars"
+            href="#about"
             className={cn(
               "transition-colors hover:text-[#77DD77]",
               isScrolled ? "text-muted-foreground" : "text-white/80"
             )}
           >
-            Pillars
+            About
+          </Link>
+          <Link
+            href="#scenarios"
+            className={cn(
+              "transition-colors hover:text-[#77DD77]",
+              isScrolled ? "text-muted-foreground" : "text-white/80"
+            )}
+          >
+            Scenarios
           </Link>
           <Link
             href="#community"
@@ -71,15 +80,6 @@ export function Navbar() {
             )}
           >
             Community
-          </Link>
-          <Link
-            href="#updates"
-            className={cn(
-              "transition-colors hover:text-[#77DD77]",
-              isScrolled ? "text-muted-foreground" : "text-white/80"
-            )}
-          >
-            Updates
           </Link>
           <Link
             href="/wiki"
