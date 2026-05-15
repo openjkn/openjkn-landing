@@ -73,13 +73,22 @@ export function Navbar() {
             Community
           </Link>
           <Link
-            href="#docs"
+            href="#updates"
             className={cn(
               "transition-colors hover:text-[#77DD77]",
               isScrolled ? "text-muted-foreground" : "text-white/80"
             )}
           >
-            Docs
+            Updates
+          </Link>
+          <Link
+            href="/wiki"
+            className={cn(
+              "transition-colors hover:text-[#77DD77]",
+              isScrolled ? "text-muted-foreground" : "text-white/80"
+            )}
+          >
+            Wiki
           </Link>
         </nav>
         <div className="flex items-center gap-4">

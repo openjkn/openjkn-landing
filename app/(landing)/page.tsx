@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card"
 
 import { HeroCarousel } from "@/components/hero-carousel"
+import Image from "next/image"
 import Script from "next/script"
 import Parser from "rss-parser"
 import { Stethoscope, Building2, GraduationCap } from "lucide-react"
@@ -51,7 +52,7 @@ export default async function Page() {
                   </a>
                 </Button>
                 <Button size="2xl" variant="outline" className="bg-white/5 backdrop-blur-md border-white/20 text-white hover:bg-white/80" asChild>
-                  <a href="#docs">Read the Docs</a>
+                  <a href="#updates">Read the Updates</a>
                 </Button>
               </div>
             </div>
@@ -234,7 +235,7 @@ export default async function Page() {
       </section>
 
       {/* Latest Updates Section */}
-      <section className="py-8 md:py-12 border-t border-border/40 bg-slate-50/40 dark:bg-slate-900/20">
+      <section id="updates" className="py-8 md:py-12 border-t border-border/40 bg-slate-50/40 dark:bg-slate-900/20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-slate-900 dark:text-white">Latest Updates</h2>
@@ -287,7 +288,8 @@ export default async function Page() {
       </section>
 
       {/* Newsletter Section */}
-      <section id="docs" className="py-8 md:py-12 border-t border-border/40 bg-white dark:bg-slate-950 relative overflow-hidden">
+      {/* Intended for future use */}
+      {/* <section id="newsletter" className="py-8 md:py-12 border-t border-border/40 bg-white dark:bg-slate-950 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-[#72A0C1]/5 to-transparent dark:from-[#72A0C1]/10 pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
@@ -310,33 +312,43 @@ export default async function Page() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
-      <footer className="py-10 border-t border-border/40 bg-slate-50 dark:bg-slate-950">
+      <footer className="py-12 border-t border-border/40 bg-slate-50 dark:bg-slate-950">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-sm text-muted-foreground">
-              © 2026 OpenJKN Initiative. Open-source under MIT License.
-            </p>
-            <div className="flex gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex flex-col items-center md:items-start gap-4">
+              <div className="flex items-center gap-2">
+                <Image src="/icon.png" alt="OpenJKN Logo" width={64} height={64} />
+                <span className="font-['Open_Sans'] tracking-tight text-4xl text-slate-900 dark:text-white">
+                  <span className="text-[#44AA44]">Open</span>
+                  <span className="text-[#72A0C1] font-bold">JKN</span>
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                © 2026 OpenJKN Initiative. Open-source under MIT License.
+              </p>
+            </div>
+
+            <div className="flex gap-8">
               <a
                 href="https://github.com/openjkn"
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 GitHub
               </a>
               <a
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                href="/wiki"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 Wiki
               </a>
               <a
                 href="#"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 Contact
               </a>

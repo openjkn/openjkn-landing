@@ -1,0 +1,23 @@
+# The Adaptation Logic
+
+A standard, unmodified version of openIMIS proved insufficient for the unique complexities of the Indonesian JKN ecosystem. Technical analysis revealed a significant data mapping gap:
+
+<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-0 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+  <div className="p-8 text-center flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
+    <span className="text-4xl md:text-5xl font-bold text-primary mb-2">58.7%</span>
+    <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">Non-Mappable Participant Data</span>
+  </div>
+  <div className="p-8 text-center flex flex-col items-center justify-center">
+    <span className="text-4xl md:text-5xl font-bold text-primary mb-2">69%</span>
+    <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">Non-Mappable Credentialing Fields</span>
+  </div>
+</div>
+
+## Critical Functional Gaps Addressed
+
+To bridge these gaps, OpenJKN implements a specialized translation and logic layer to handle uniquely Indonesian requirements:
+
+- **Multi-scheme Premium Collection:** Handles complex segmentation native to BPJS Kesehatan, including PBI (Penerima Bantuan Iuran), PPU, PBPU, and BP.
+- **Performance-based Capitation:** Direct integration of Case-mix logic and INA-CBGs payment models, which are central to the Indonesian healthcare payment architecture.
+- **Facility Management:** Advanced capabilities for healthcare facility credentialing, dynamic contract management, and bridging virtual claims (V-Claim).
+- **Localized Variables:** Support for detailed Indonesian facility types (Faskes Tingkat Pertama & Lanjutan), Mobile JKN appointment systems, and localized doctor scheduling formats.

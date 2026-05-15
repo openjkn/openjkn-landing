@@ -1,0 +1,47 @@
+import { Database, Layers, ArrowRight } from "lucide-react"
+
+# Technical Architecture
+
+To accommodate substantial differences while maintaining global compatibility, OpenJKN utilizes a decoupled architecture.
+
+<div className="my-8 bg-slate-50 dark:bg-[#0F172A] rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-200 dark:border-slate-800">
+  <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/50 rounded-xl p-6 flex flex-col items-center justify-center w-full md:w-2/5 shadow-lg">
+    <Database className="w-8 h-8 text-primary mb-3" />
+    <span className="text-slate-900 dark:text-white font-bold tracking-tight">OpenJKN Frontend</span>
+  </div>
+
+  <div className="flex flex-col items-center justify-center w-full md:w-1/5 relative">
+    <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 z-10 bg-slate-50 dark:bg-[#0F172A] px-2">REST API</div>
+    <div className="w-full h-px bg-primary/30 relative flex items-center justify-center">
+      <ArrowRight className="w-4 h-4 text-primary absolute bg-slate-50 dark:bg-[#0F172A]" />
+    </div>
+    <div className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1 z-10 bg-slate-50 dark:bg-[#0F172A] px-2">DB Sync</div>
+  </div>
+
+  <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/50 rounded-xl p-6 flex flex-col items-center justify-center w-full md:w-2/5 shadow-lg">
+    <Layers className="w-8 h-8 text-indigo-500 dark:text-indigo-400 mb-3" />
+    <span className="text-slate-900 dark:text-white font-bold tracking-tight">openIMIS Core</span>
+  </div>
+</div>
+
+<div className="flex flex-col gap-4 mt-8">
+  <div className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+    <div className="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+      <Layers className="w-5 h-5" />
+    </div>
+    <div>
+      <h3 className="font-bold text-slate-900 dark:text-white m-0 text-lg">Frontend/Backend Separation</h3>
+      <p className="text-slate-500 dark:text-slate-400 mt-1 m-0">The OpenJKN layers are deliberately separated from the core openIMIS infrastructure to allow custom business logic.</p>
+    </div>
+  </div>
+
+  <div className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+    <div className="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+      <Database className="w-5 h-5" />
+    </div>
+    <div>
+      <h3 className="font-bold text-slate-900 dark:text-white m-0 text-lg">Preserving Global Code</h3>
+      <p className="text-slate-500 dark:text-slate-400 mt-1 m-0">This decoupled approach ensures that the core openIMIS codebase remains fundamentally unaltered, maintaining global compatibility.</p>
+    </div>
+  </div>
+</div>

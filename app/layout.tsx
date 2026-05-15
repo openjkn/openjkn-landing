@@ -1,11 +1,23 @@
+import type { Metadata } from "next"
 import { Geist, Geist_Mono, Inter, Open_Sans } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils";
-import { Navbar } from "@/components/navbar"
-import { CookieConsent } from "@/components/cookie-consent"
+
+export const metadata: Metadata = {
+  title: {
+    default: "OpenJKN | The Digital Sandbox for Indonesian JKN",
+    template: "%s | OpenJKN"
+  },
+  description: "OpenJKN Initiative: Accelerating Indonesia's health system transformation through open-source interoperability and the global openIMIS sandbox.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  }
+}
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'})
 const openSans = Open_Sans({
@@ -38,9 +50,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <Navbar />
             {children}
-            <CookieConsent />
           </TooltipProvider>
         </ThemeProvider>
       </body>
