@@ -5,9 +5,9 @@ import useEmblaCarousel from "embla-carousel-react"
 import { cn } from "@/lib/utils"
 
 const images = [
-  "/hero-1.png",
-  "/hero-2.png",
-  "/hero-3.png",
+  "/hero-1.webp",
+  "/hero-2.webp",
+  "/hero-3.webp",
 ]
 
 export function HeroCarousel() {
