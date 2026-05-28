@@ -11,6 +11,8 @@ import { HeroCarousel } from "@/components/hero-carousel"
 import Image from "next/image"
 import Script from "next/script"
 import Parser from "rss-parser"
+import { query } from "@/lib/db"
+import { MemberRegistrationForm } from "@/components/member-registration-form"
 import {
   FlaskConical,
   Workflow,
@@ -29,13 +31,44 @@ import {
 } from "lucide-react"
 
 export default async function Page() {
-  let articles: Parser.Item[] = [];
+  let articles: any[] = [];
+  
+  // 1. Fetch from PostgreSQL
   try {
-    const parser = new Parser();
-    const feed = await parser.parseURL('https://openjkn.substack.com/feed');
-    articles = feed.items.slice(0, 3);
-  } catch (error) {
-    console.error("Failed to fetch Substack RSS", error);
+    const dbResult = await query(
+      "SELECT slug, title, excerpt, image_url, published_at FROM articles WHERE published = true ORDER BY published_at DESC LIMIT 3"
+    );
+    if (dbResult.rows.length > 0) {
+      articles = dbResult.rows.map(row => ({
+        title: row.title,
+        link: `/articles/${row.slug}`,
+        pubDate: row.published_at ? new Date(row.published_at).toISOString() : new Date().toISOString(),
+        enclosure: { url: row.image_url },
+        contentSnippet: row.excerpt,
+        isLocal: true
+      }));
+    }
+  } catch (dbErr) {
+    console.error("Failed to fetch PostgreSQL articles:", dbErr);
+  }
+
+  // 2. Fetch Substack articles and append if needed to fill 3 items
+  if (articles.length < 3) {
+    try {
+      const parser = new Parser();
+      const feed = await parser.parseURL('https://openjkn.substack.com/feed');
+      const substackItems = feed.items.slice(0, 3 - articles.length).map(item => ({
+        title: item.title || '',
+        link: item.link || '',
+        pubDate: item.pubDate || new Date().toISOString(),
+        enclosure: item.enclosure,
+        contentSnippet: item.contentSnippet || '',
+        isLocal: false
+      }));
+      articles = [...articles, ...substackItems];
+    } catch (error) {
+      console.error("Failed to fetch Substack RSS", error);
+    }
   }
 
   return (
@@ -336,24 +369,12 @@ export default async function Page() {
             </p>
           </div>
           <div className="grid lg:grid-cols-2 gap-8 md:gap-12 max-w-5xl mx-auto">
-            <Card>
+            <Card className="hover:border-[#72A0C1]/20 transition-all duration-300 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl">Become a Contributor</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950">
-                  <iframe
-                    data-tally-src="https://tally.so/embed/ODdp67?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
-                    loading="lazy"
-                    width="100%"
-                    height="400"
-                    frameBorder="0"
-                    marginHeight={0}
-                    marginWidth={0}
-                    title="Registration Form"
-                  ></iframe>
-                  <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
-                </div>
+                <MemberRegistrationForm />
               </CardContent>
             </Card>
 

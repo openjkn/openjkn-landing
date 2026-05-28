@@ -5,6 +5,8 @@ import type { PageMapItem } from 'nextra'
 import 'nextra-theme-docs/style.css'
 import Image from 'next/image'
 import Link from 'next/link'
+import fs from 'fs/promises'
+import path from 'path'
 
 export const metadata = {
   title: 'OpenJKN Wiki',
@@ -34,12 +36,24 @@ export default async function WikiLayout({
 }) {
   let map = await getPageMap()
 
-  // FORCE correctly ordered and named wiki menu
-  const wikiOrder = [
+  // Load dynamically ordered and named wiki menu from configuration file
+  const configPath = path.join(process.cwd(), 'lib', 'wiki-config.json')
+  let wikiOrder = [
     { name: 'wiki', title: 'Overview' },
     { name: 'adaptation-logic', title: 'Adaptation Logic' },
     { name: 'technical-architecture', title: 'Technical Architecture' }
   ]
+  try {
+    const configData = await fs.readFile(configPath, 'utf-8')
+    wikiOrder = JSON.parse(configData)
+  } catch (e) {
+    // If config file doesn't exist, create it with defaults
+    try {
+      await fs.writeFile(configPath, JSON.stringify(wikiOrder, null, 2), 'utf-8')
+    } catch (writeErr) {
+      console.error('Failed to initialize wiki-config.json:', writeErr)
+    }
+  }
 
   const wikiMap = wikiOrder.map(config => {
     const item = map.find((i: PageMapItem) => 'name' in i && i.name === config.name)
