@@ -5,10 +5,8 @@ import path from 'path'
 const WIKI_DIR = path.join(process.cwd(), 'app', '(wiki)')
 const CONFIG_PATH = path.join(process.cwd(), 'lib', 'wiki-config.json')
 
-// Helper to validate and clean slug to prevent directory traversal
 function sanitizeSlug(slug: string): string {
   if (!slug) return ''
-  // Keep only letters, numbers, and hyphens. Completely reject dots or slashes.
   return slug.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase()
 }
 
@@ -16,6 +14,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const rawSlug = searchParams.get('slug')
+    const locale = searchParams.get('locale') || 'id'
+    
     if (!rawSlug) {
       return NextResponse.json({ error: 'Slug parameter is required' }, { status: 400 })
     }
@@ -25,11 +25,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
     }
 
-    const filePath = path.join(WIKI_DIR, slug, 'page.mdx')
+    const filename = locale === 'en' ? 'page.en.mdx' : 'page.mdx'
+    const filePath = path.join(WIKI_DIR, slug, filename)
+    
     try {
       const content = await fs.readFile(filePath, 'utf-8')
-      return NextResponse.json({ slug, content })
+      return NextResponse.json({ slug, content, locale })
     } catch (e) {
+      // Fallback: If English translation doesn't exist, return a helpful notice or default file
+      if (locale === 'en') {
+        return NextResponse.json({
+          slug,
+          content: `# ${slug.toUpperCase()} (EN Translation Required)\n\nThis page does not have an English translation yet. Click write mode to add one!`,
+          locale,
+          notFound: true
+        })
+      }
       return NextResponse.json({ error: `Page with slug "${slug}" not found` }, { status: 404 })
     }
   } catch (err: any) {
@@ -40,7 +51,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { slug: rawSlug, content, title, oldSlug: rawOldSlug } = await request.json()
+    const { slug: rawSlug, content, title, oldSlug: rawOldSlug, locale = 'id' } = await request.json()
     
     if (!rawSlug || !content || !title) {
       return NextResponse.json({ error: 'Missing required fields: slug, title, and content' }, { status: 400 })
@@ -50,10 +61,9 @@ export async function POST(request: Request) {
     const oldSlug = rawOldSlug ? sanitizeSlug(rawOldSlug) : ''
 
     if (!slug) {
-      return NextResponse.json({ error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid slug format.' }, { status: 400 })
     }
 
-    // Load current config to update it
     let wikiOrder: { name: string; title: string }[] = []
     try {
       const configData = await fs.readFile(CONFIG_PATH, 'utf-8')
@@ -62,12 +72,11 @@ export async function POST(request: Request) {
       wikiOrder = []
     }
 
-    // Handle slug renaming (Move folder if slug changed)
+    // Handle slug renaming (Folder movement)
     if (oldSlug && oldSlug !== slug) {
       const oldFolder = path.join(WIKI_DIR, oldSlug)
       const newFolder = path.join(WIKI_DIR, slug)
       
-      // Check if old folder actually exists
       let oldExists = false
       try {
         await fs.access(oldFolder)
@@ -75,14 +84,12 @@ export async function POST(request: Request) {
       } catch (e) {}
 
       if (oldExists) {
-        // Move directory
         await fs.rename(oldFolder, newFolder)
       } else {
-        // Create new directory if old didn't exist for some reason
         await fs.mkdir(newFolder, { recursive: true })
       }
 
-      // Update config list (rename occurrences)
+      // Rename inside wiki config
       wikiOrder = wikiOrder.map(item => {
         if (item.name === oldSlug) {
           return { name: slug, title: title }
@@ -90,27 +97,29 @@ export async function POST(request: Request) {
         return item
       })
     } else {
-      // Just write/update the file directly
       const folderPath = path.join(WIKI_DIR, slug)
       await fs.mkdir(folderPath, { recursive: true })
 
-      // Check if slug already exists in config, otherwise append
       const existsIndex = wikiOrder.findIndex(item => item.name === slug)
       if (existsIndex >= 0) {
-        wikiOrder[existsIndex].title = title
+        // Only update title in main config if saving default (ID) locale
+        if (locale === 'id') {
+          wikiOrder[existsIndex].title = title
+        }
       } else {
         wikiOrder.push({ name: slug, title: title })
       }
     }
 
-    // Write the MDX file content
-    const filePath = path.join(WIKI_DIR, slug, 'page.mdx')
+    // Determine correct filename based on locale selector
+    const filename = locale === 'en' ? 'page.en.mdx' : 'page.mdx'
+    const filePath = path.join(WIKI_DIR, slug, filename)
     await fs.writeFile(filePath, content, 'utf-8')
 
     // Write updated config
     await fs.writeFile(CONFIG_PATH, JSON.stringify(wikiOrder, null, 2), 'utf-8')
 
-    return NextResponse.json({ success: true, slug, title })
+    return NextResponse.json({ success: true, slug, title, locale })
   } catch (err: any) {
     console.error('Error saving wiki page:', err)
     return NextResponse.json({ error: err.message || 'Failed to save page' }, { status: 500 })
@@ -131,23 +140,20 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
     }
 
-    // Prevent deleting the primary overview page if you want safety
     if (slug === 'wiki') {
       return NextResponse.json({ error: 'Cannot delete the primary Wiki Overview page.' }, { status: 400 })
     }
 
     const folderPath = path.join(WIKI_DIR, slug)
-    const filePath = path.join(folderPath, 'page.mdx')
-
-    // Remove file and directory
+    
+    // Delete both ID and EN localizations
     try {
-      await fs.unlink(filePath)
+      await fs.unlink(path.join(folderPath, 'page.mdx')).catch(() => {})
+      await fs.unlink(path.join(folderPath, 'page.en.mdx')).catch(() => {})
       await fs.rmdir(folderPath)
-    } catch (e) {
-      // Folder or file might already be gone, let's proceed to config cleanup
-    }
+    } catch (e) {}
 
-    // Remove from configuration
+    // Clean up config file
     let wikiOrder: { name: string; title: string }[] = []
     try {
       const configData = await fs.readFile(CONFIG_PATH, 'utf-8')

@@ -21,7 +21,6 @@ import {
   Home,
   Bold,
   Italic,
-  Type,
   Code,
   Link as LinkIcon,
   Image as ImageIcon,
@@ -80,6 +79,7 @@ export default function CMSDashboard() {
   const [wikiSearch, setWikiSearch] = useState('')
   const [wikiUnsaved, setWikiUnsaved] = useState(false)
   const [wikiSaving, setWikiSaving] = useState(false)
+  const [wikiLocale, setWikiLocale] = useState<'id' | 'en'>('id') // Active editing locale!
 
   // ==========================================
   // ARTICLES STATE & ACTIONS
@@ -119,7 +119,7 @@ export default function CMSDashboard() {
         const data = await res.json()
         setWikiPages(data)
         if (data.length > 0 && !selectedWiki) {
-          loadWikiPage(data[0])
+          loadWikiPage(data[0], wikiLocale)
         }
       }
     } catch (e) {
@@ -128,10 +128,10 @@ export default function CMSDashboard() {
   }
 
   // Load single wiki file content
-  const loadWikiPage = async (item: WikiItem) => {
+  const loadWikiPage = async (item: WikiItem, targetLocale = wikiLocale) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/cms/page?slug=${item.name}`)
+      const res = await fetch(`/api/cms/page?slug=${item.name}&locale=${targetLocale}`)
       if (res.ok) {
         const data = await res.json()
         setSelectedWiki(item)
@@ -147,6 +147,15 @@ export default function CMSDashboard() {
       toast.error('Network error loading wiki content')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Handle Wiki language change
+  const handleWikiLocaleChange = (locale: 'id' | 'en') => {
+    setWikiLocale(locale)
+    if (selectedWiki) {
+      loadWikiPage(selectedWiki, locale)
+      toast.info(`Switched editing locale to ${locale.toUpperCase()}`)
     }
   }
 
@@ -170,12 +179,13 @@ export default function CMSDashboard() {
           slug: wikiSlug,
           title: wikiTitle,
           content: wikiContent,
-          oldSlug: originalWikiSlug
+          oldSlug: originalWikiSlug,
+          locale: wikiLocale // Pass active locale!
         })
       })
 
       if (res.ok) {
-        toast.success(`Wiki page "${wikiTitle}" saved successfully!`)
+        toast.success(`Wiki page "${wikiTitle}" [${wikiLocale.toUpperCase()}] saved successfully!`)
         setWikiUnsaved(false)
         setOriginalWikiSlug(wikiSlug)
         await fetchWikiPages()
@@ -197,7 +207,7 @@ export default function CMSDashboard() {
       return
     }
 
-    if (!confirm(`Are you absolutely sure you want to delete the wiki page "${item.title}"?\nThis deletes the local MDX file and cannot be undone.`)) {
+    if (!confirm(`Are you absolutely sure you want to delete the wiki page "${item.title}"?\nThis deletes both the Indonesian and English MDX files and cannot be undone.`)) {
       return
     }
 
@@ -445,7 +455,44 @@ export default function CMSDashboard() {
     }, 50)
   }
 
-  // Helper to compress and resize image using browser Canvas API (reserves aspect ratio)
+  // Image Upload helper
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    const toastId = toast.loading(`Compressing and uploading image "${file.name}" locally...`)
+
+    try {
+      const compressedBlob = await compressAndResizeImage(file)
+      
+      const originalNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
+      const uploadFilename = `${originalNameWithoutExt}_compressed.jpg`
+
+      const formData = new FormData()
+      formData.append('file', compressedBlob, uploadFilename)
+
+      const res = await fetch('/api/cms/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Image compressed & uploaded successfully!`, { id: toastId })
+        insertMarkdown(`![${originalNameWithoutExt}](${data.url})`)
+      } else {
+        toast.error(data.error || 'Failed to upload image', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Network error during image compression or upload', { id: toastId })
+    } finally {
+      setUploadingImage(false)
+      e.target.value = ''
+    }
+  }
+
+  // Image compress helper
   const compressAndResizeImage = (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob | File> => {
     return new Promise((resolve) => {
       if (!file.type.startsWith('image/')) {
@@ -463,7 +510,6 @@ export default function CMSDashboard() {
           let width = img.width
           let height = img.height
 
-          // Only scale down if width exceeds maxWidth to prevent upscaling smaller images
           if (width > maxWidth) {
             height = Math.round((maxWidth / width) * height)
             width = maxWidth
@@ -479,10 +525,8 @@ export default function CMSDashboard() {
             return
           }
 
-          // Draw image on canvas
           ctx.drawImage(img, 0, 0, width, height)
 
-          // Export as compressed JPEG
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -505,45 +549,6 @@ export default function CMSDashboard() {
         resolve(file)
       }
     })
-  }
-
-  // Image Upload helper
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploadingImage(true)
-    const toastId = toast.loading(`Compressing and uploading image "${file.name}" locally...`)
-
-    try {
-      // Compress and resize the image client-side to save bandwidth and storage
-      const compressedBlob = await compressAndResizeImage(file)
-      
-      const originalNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
-      const uploadFilename = `${originalNameWithoutExt}_compressed.jpg`
-
-      const formData = new FormData()
-      formData.append('file', compressedBlob, uploadFilename)
-
-      const res = await fetch('/api/cms/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await res.json()
-      if (res.ok) {
-        toast.success(`Image compressed & uploaded successfully!`, { id: toastId })
-        // Insert markdown image syntax using the new local URL
-        insertMarkdown(`![${originalNameWithoutExt}](${data.url})`)
-      } else {
-        toast.error(data.error || 'Failed to upload image', { id: toastId })
-      }
-    } catch (err) {
-      toast.error('Network error during image compression or upload', { id: toastId })
-    } finally {
-      setUploadingImage(false)
-      e.target.value = '' // Clear input
-    }
   }
 
   // Search filters
@@ -677,7 +682,7 @@ export default function CMSDashboard() {
                     }`}
                   >
                     <button
-                      onClick={() => loadWikiPage(item)}
+                      onClick={() => loadWikiPage(item, wikiLocale)}
                       className="flex-1 flex items-center gap-2 text-left truncate mr-2"
                     >
                       <FileText className={`w-4 h-4 shrink-0 ${selectedWiki?.name === item.name ? 'text-emerald-600' : 'text-slate-400'}`} />
@@ -750,7 +755,7 @@ export default function CMSDashboard() {
                       />
                     </div>
                     {/* Slug */}
-                    <div className="w-64">
+                    <div className="w-48">
                       <label className="block text-[10px] uppercase font-bold font-mono tracking-wider text-slate-400 mb-1">
                         URL Slug {originalWikiSlug === 'wiki' && <span className="text-rose-500">(Locked)</span>}
                       </label>
@@ -765,6 +770,26 @@ export default function CMSDashboard() {
                         className="w-full bg-white border border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 rounded-lg px-3 py-1.5 text-sm text-slate-800 placeholder-slate-350 focus:outline-none focus:border-emerald-500 transition-colors font-mono"
                         placeholder="overview-slug"
                       />
+                    </div>
+                    {/* Wiki translation locale switch */}
+                    <div className="w-28">
+                      <label className="block text-[10px] uppercase font-bold font-mono tracking-wider text-slate-400 mb-1">Locale</label>
+                      <div className="bg-slate-200/40 p-1 rounded-lg border border-slate-200 flex gap-0.5 text-xs h-[38px] items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleWikiLocaleChange('id')}
+                          className={`flex-1 h-full rounded transition-colors font-bold cursor-pointer ${wikiLocale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          ID
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleWikiLocaleChange('en')}
+                          className={`flex-1 h-full rounded transition-colors font-bold cursor-pointer ${wikiLocale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          EN
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -794,14 +819,14 @@ export default function CMSDashboard() {
                     <button
                       onClick={saveWikiPage}
                       disabled={wikiSaving}
-                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm font-sans"
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm font-sans cursor-pointer"
                     >
                       {wikiSaving ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      <span>Save Changes</span>
+                      <span>Save {wikiLocale.toUpperCase()}</span>
                       {wikiUnsaved && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse ml-0.5" />}
                     </button>
                   </div>
@@ -1058,7 +1083,7 @@ export default function CMSDashboard() {
                     <button
                       onClick={saveArticle}
                       disabled={articleSaving}
-                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm font-sans"
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm font-sans cursor-pointer"
                     >
                       {articleSaving ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1127,7 +1152,7 @@ export default function CMSDashboard() {
                         id="pub-check"
                         checked={articlePublished}
                         onChange={(e) => setArticlePublished(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-600 bg-white border-slate-200 rounded focus:ring-emerald-500"
+                        className="w-4 h-4 accent-emerald-650 bg-white border-slate-200 rounded focus:ring-emerald-500"
                       />
                       <label htmlFor="pub-check" className="text-xs text-slate-700 font-semibold select-none cursor-pointer">Published</label>
                     </div>
@@ -1323,7 +1348,7 @@ export default function CMSDashboard() {
               {/* Members Registry Grid Table */}
               <div className="flex-1 bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-sm text-slate-650">
+                  <table className="w-full border-collapse text-left text-sm text-slate-655">
                     <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 font-mono text-xs uppercase tracking-wider">
                       <tr>
                         <th className="p-4 font-bold">ID</th>
